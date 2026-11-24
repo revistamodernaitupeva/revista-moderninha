@@ -1,0 +1,44 @@
+name: Publicar
+on:
+  schedule:
+    - cron: "7,17,27,37,47,57 9-23,0-2 * * *"
+  workflow_dispatch:
+    inputs:
+      simulacao:
+        description: "Simular (nao publica de verdade)?"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-moderninha
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publicar o que esta na hora
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+          SIMULACAO: ${{ inputs.simulacao || 'false' }}
+        run: python3 publicar.py
+
+      - name: Salvar alteracoes no repositorio
+        if: always()
+        run: |
+          git config user.name "publicador-bot"
+          git config user.email "publicador-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nada a salvar."
+          else
+            git commit -m "Publicador: atualiza fila e historico"
+            git pull --rebase
+            git push
+          fi

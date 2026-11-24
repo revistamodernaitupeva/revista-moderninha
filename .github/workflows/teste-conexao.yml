@@ -1,0 +1,34 @@
+name: Teste de conexao Meta
+on: workflow_dispatch
+jobs:
+  teste:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar a Meta
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse, urllib.error
+          V = "v26.0"
+          T = os.environ.get("META_TOKEN", "")
+          if not T:
+              raise SystemExit("Secret META_TOKEN ainda nao configurado.")
+          def get(path, **p):
+              p["access_token"] = T
+              url = f"https://graph.facebook.com/{V}/{path}?" + urllib.parse.urlencode(p)
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  return {"erro": json.load(e)}
+          print("QUEM SOU EU:", json.dumps(get("me", fields="id,name"), ensure_ascii=False))
+          print("PERMISSOES:", json.dumps(get("me/permissions"), ensure_ascii=False))
+          paginas = get("me/accounts", fields="id,name,instagram_business_account{id,username}")
+          print("PAGINAS (copie pagina_id e instagram_id da Revista Moderninha):")
+          print(json.dumps(paginas, ensure_ascii=False, indent=2))
+          for pg in paginas.get("data", []):
+              ig = pg.get("instagram_business_account", {}).get("id")
+              if ig:
+                  print("LIMITE IG", ig, json.dumps(get(f"{ig}/content_publishing_limit", fields="quota_usage,config"), ensure_ascii=False))
+          PY
