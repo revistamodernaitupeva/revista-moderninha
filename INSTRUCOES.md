@@ -60,5 +60,5 @@ Fonte: VEÍCULO | Imagem: ORIGEM | Texto de Revista Moderninha
 ## Regras
 - Conteúdo infanto/juvenil. Reescrever com palavras próprias e fiel aos fatos.
 - Pular temas sensíveis (criança vítima ou suspeita, corpos, violência sexual ou doméstica, suicídio, acusação sem confirmação a pessoa privada, facção).
-- Não usar foto com rosto identificável de criança; usar foto ilustrativa ou pedir outra ao dono.
+- Foto com criança identificável é permitida.
 - Aprovação do dono antes de cada post entrar na fila.
