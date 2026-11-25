@@ -98,9 +98,41 @@ def bloco_apoio(texto, draw, espaco, tamanho=None):
     return f, linhas, alt
 
 
-def escrever(draw, linhas, fonte, y, altura):
+TIL = {"ã": "a", "õ": "o", "ñ": "n", "Ã": "A", "Õ": "O", "Ñ": "N"}
+
+
+def escrever(draw, linhas, fonte, y, altura, til_manual=False):
+    """Escreve linhas centralizadas. Com til_manual, desenha o til à parte
+    (a More Sugar tem ã/õ sem o til no desenho)."""
     for l in linhas:
-        draw.text((CENTRO_X, y), l, font=fonte, fill=BRANCO, anchor="mt")
+        if not til_manual or not any(c in TIL for c in l):
+            draw.text((CENTRO_X, y), l, font=fonte, fill=BRANCO, anchor="mt")
+            y += altura
+            continue
+        base = "".join(TIL.get(c, c) for c in l)
+        x0 = round(CENTRO_X - draw.textlength(base, font=fonte) / 2)
+        draw.text((x0, y), base, font=fonte, fill=BRANCO, anchor="lt")
+        # til desenhado à mão (onda), centralizado sobre a tinta da letra
+        s = fonte.size
+        # mede a tinta na própria linha (o anchor "t" depende do texto)
+        mascara = Image.new("L", (round(draw.textlength(base, font=fonte)) + s, s * 3), 0)
+        ImageDraw.Draw(mascara).text((0, s), base, font=fonte, fill=255, anchor="lt")
+        for i, c in enumerate(l):
+            if c not in TIL:
+                continue
+            ia = round(draw.textlength(base[:i], font=fonte))
+            ib = round(draw.textlength(base[:i + 1], font=fonte))
+            bx0, by0, bx1, _ = mascara.crop((ia, 0, ib, s * 3)).getbbox()
+            cx = x0 + ia + (bx0 + bx1) / 2
+            w, h = s * 0.42, s * 0.11
+            yb = y + (by0 - s) - s * 0.10     # base do til, acima da letra
+            pts = []
+            for k in range(25):
+                t = k / 24
+                import math
+                pts.append((cx - w / 2 + w * t,
+                            yb - h / 2 - (h / 2) * math.sin(t * 2 * math.pi)))
+            draw.line(pts, fill=BRANCO, width=max(3, round(s * 0.09)), joint="curve")
         y += altura
     return y
 
@@ -124,7 +156,7 @@ def main():
 
     d = ImageDraw.Draw(arte)
     ft, lt, at = bloco_titulo(titulo, d, int(o["titulo"]) if "titulo" in o else None)
-    y = escrever(d, lt, ft, TOPO_TEXTO, at)
+    y = escrever(d, lt, ft, TOPO_TEXTO, at, til_manual=True)
     y += 38
     fa, la, aa = bloco_apoio(apoio, d, LIMITE_BASE - y,
                              int(o["apoio"]) if "apoio" in o else None)
