@@ -25,7 +25,7 @@ FONTE_APOIO = AQUI / "OpenSans.ttf"
 FOTO_CAIXA = (103, 189, 727, 1141)        # área transparente da moldura
 COLUNA_X0, COLUNA_X1 = 745, 1065          # coluna roxa da direita
 CENTRO_X = (COLUNA_X0 + COLUNA_X1) // 2
-TOPO_TEXTO = 540                           # logo abaixo da seta neon
+TOPO_TEXTO = 548                           # logo abaixo da seta neon
 LIMITE_BASE = 1205                         # acima da faixa branca de baixo
 BRANCO = (255, 255, 255)
 
@@ -102,21 +102,23 @@ TIL = {"ã": "a", "õ": "o", "ñ": "n", "Ã": "A", "Õ": "O", "Ñ": "N"}
 
 
 def escrever(draw, linhas, fonte, y, altura, til_manual=False):
-    """Escreve linhas centralizadas. Com til_manual, desenha o til à parte
+    """Escreve linhas centralizadas, alinhadas pela linha de base (espaçamento
+    igual mesmo com acentos). Com til_manual, desenha o til à parte
     (a More Sugar tem ã/õ sem o til no desenho)."""
+    import math
+    s = fonte.size
+    asc = round(s * 0.78)                      # topo da linha -> linha de base
     for l in linhas:
+        yb_linha = y + asc
         if not til_manual or not any(c in TIL for c in l):
-            draw.text((CENTRO_X, y), l, font=fonte, fill=BRANCO, anchor="mt")
+            draw.text((CENTRO_X, yb_linha), l, font=fonte, fill=BRANCO, anchor="ms")
             y += altura
             continue
         base = "".join(TIL.get(c, c) for c in l)
         x0 = round(CENTRO_X - draw.textlength(base, font=fonte) / 2)
-        draw.text((x0, y), base, font=fonte, fill=BRANCO, anchor="lt")
-        # til desenhado à mão (onda), centralizado sobre a tinta da letra
-        s = fonte.size
-        # mede a tinta na própria linha (o anchor "t" depende do texto)
+        draw.text((x0, yb_linha), base, font=fonte, fill=BRANCO, anchor="ls")
         mascara = Image.new("L", (round(draw.textlength(base, font=fonte)) + s, s * 3), 0)
-        ImageDraw.Draw(mascara).text((0, s), base, font=fonte, fill=255, anchor="lt")
+        ImageDraw.Draw(mascara).text((0, s * 2), base, font=fonte, fill=255, anchor="ls")
         for i, c in enumerate(l):
             if c not in TIL:
                 continue
@@ -125,13 +127,10 @@ def escrever(draw, linhas, fonte, y, altura, til_manual=False):
             bx0, by0, bx1, _ = mascara.crop((ia, 0, ib, s * 3)).getbbox()
             cx = x0 + ia + (bx0 + bx1) / 2
             w, h = s * 0.42, s * 0.11
-            yb = y + (by0 - s) - s * 0.10     # base do til, acima da letra
-            pts = []
-            for k in range(25):
-                t = k / 24
-                import math
-                pts.append((cx - w / 2 + w * t,
-                            yb - h / 2 - (h / 2) * math.sin(t * 2 * math.pi)))
+            yb = yb_linha + (by0 - s * 2) - s * 0.10   # base do til, acima da letra
+            pts = [(cx - w / 2 + w * k / 24,
+                    yb - h / 2 - (h / 2) * math.sin(k / 24 * 2 * math.pi))
+                   for k in range(25)]
             draw.line(pts, fill=BRANCO, width=max(3, round(s * 0.09)), joint="curve")
         y += altura
     return y
